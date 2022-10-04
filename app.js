@@ -30,7 +30,7 @@ initializeDBAndServer();
 
 const authorization = (request, response, next) => {
   let jwtToken;
-  const headerAuthor = request.header["authorization"];
+  const headerAuthor = request.headers["authorization"];
   if (headerAuthor !== undefined) {
     jwtToken = headerAuthor.split(" ")[1];
   }
@@ -42,6 +42,7 @@ const authorization = (request, response, next) => {
       if (error) {
         console.log(jwtToken);
         response.status(401);
+        console.log(jwtToken);
         response.send("Invalid Access Token");
       } else {
         request.username = payload.username;
@@ -87,3 +88,48 @@ app.get("/states/", authorization, async (request, response) => {
   const stateArray = await db.all(statesQuery);
   response.send(stateArray);
 });
+
+//API -3
+app.get("/states/:stateId/", authorization, async (request, response) => {
+  const { stateId } = request.params;
+  const stateTableQuery = `
+    SELECT *
+    FROM state
+    WHERE state_id = ${stateId};`;
+  const dbResponse = await db.get(stateTableQuery);
+  response.send(dbResponse);
+});
+
+//API-4
+app.post("/districts/", authorization, async (request, response) => {
+  try {
+    const {
+      districtName,
+      stateId,
+      cases,
+      cured,
+      active,
+      deaths,
+    } = request.body;
+    const addDistrictQuery = `
+    INSERT INTO district(
+        district_name,state_id,cases,cured,active,deaths
+    )
+    VALUES(
+        '${districtName}',
+        ${stateId},
+        ${cases},
+        ${cured},
+        ${active},
+        ${deaths}
+    );`;
+
+    const dbResponse = await db.run(addDistrictQuery);
+    //const { district_id } = dbResponse.lastID;
+    response.send("District Added successfully");
+  } catch (e) {
+    console.log(`${e.message}`);
+  }
+});
+
+module.exports = app;
