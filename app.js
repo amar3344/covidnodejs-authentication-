@@ -53,6 +53,26 @@ const authorization = (request, response, next) => {
   }
 };
 
+const covertStateDBToRequiredObject = (dataObject) => {
+  return {
+    stateId: dataObject.state_id,
+    stateName: dataObject.state_name,
+    population: dataObject.population,
+  };
+};
+
+const convertDistrictDbObjectToRequiredObject = (dataObject) => {
+  return {
+    districtId: dataObject.district_id,
+    districtName: dataObject.district_name,
+    stateId: dataObject.state_id,
+    cases: dataObject.cases,
+    cured: dataObject.cured,
+    active: dataObject.active,
+    deaths: dataObject.deaths,
+  };
+};
+
 //API-1
 app.post("/login/", async (request, response) => {
   const { username, password } = request.body;
@@ -80,13 +100,16 @@ app.post("/login/", async (request, response) => {
   }
 });
 
+//API -2
 app.get("/states/", authorization, async (request, response) => {
   const statesQuery = `
   SELECT *
    FROM state
     ORDER BY state_id ASC;`;
   const stateArray = await db.all(statesQuery);
-  response.send(stateArray);
+  response.send(
+    stateArray.map((eachState) => covertStateDBToRequiredObject(eachState))
+  );
 });
 
 //API -3
@@ -97,7 +120,7 @@ app.get("/states/:stateId/", authorization, async (request, response) => {
     FROM state
     WHERE state_id = ${stateId};`;
   const dbResponse = await db.get(stateTableQuery);
-  response.send(dbResponse);
+  response.send(covertStateDBToRequiredObject(dbResponse));
 });
 
 //API-4
@@ -125,7 +148,7 @@ app.post("/districts/", authorization, async (request, response) => {
     );`;
 
     const dbResponse = await db.run(addDistrictQuery);
-    //const { district_id } = dbResponse.lastID;
+    const districtId = dbResponse.lastID;
     response.send("District Added successfully");
   } catch (e) {
     console.log(`${e.message}`);
